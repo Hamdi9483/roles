@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>إدارة المستخدمين والصلاحيات</title>
+  <link rel="icon" type="image/png" href="crsnt.png">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  
+  <style>
+    :root {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #ffffff;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --border-color: #e2e8f0;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #22c55e;
+      --success-hover: #16a34a;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+      --whatsapp: #25D366;
+      --shadow: 0 1px 3px rgba(0,0,0,0.1);
+      --radius: 12px;
+    }
+
+    [data-theme="dark"] {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --border-color: #334155;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      transition: background 0.3s, color 0.3s;
+    }
+    
+    .header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: var(--shadow);
+    }
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 { font-size: 1.5rem; display: flex; align-items: center; gap: 0.5rem; }
+    .header-actions { display: flex; gap: 0.5rem; }
+    .btn-icon {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 0.5rem;
+      cursor: pointer;
+      color: var(--text-primary);
+      transition: all 0.2s;
+    }
+    .btn-icon:hover { background: var(--primary); color: white; }
+    
+    .container {
+      max-width: 1400px;
+      margin: 1.5rem auto;
+      padding: 0 2rem;
+    }
+    
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+      border: none;
+      text-decoration: none;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-success { background: var(--success); color: white; }
+    .btn-success:hover { background: var(--success-hover); }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-danger:hover { background: var(--danger-hover); }
+    .btn-warning { background: var(--warning); color: #000; }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+    }
+    .btn-outline:hover { background: var(--bg-primary); }
+    
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 0.5rem;
+    }
+    .tab {
+      padding: 0.75rem 1.5rem;
+      cursor: pointer;
+      border-radius: var(--radius) var(--radius) 0 0;
+      font-weight: 500;
+      transition: all 0.2s;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: inherit;
+    }
+    .tab.active {
+      background: var(--primary);
+      color: white;
+    }
+    .tab:hover:not(.active) {
+      background: var(--bg-primary);
+    }
+    
+    .card {
+      background: var(--bg-secondary);
+      border-radius: var(--radius);
+      border: 1px solid var(--border-color);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    .card-title { font-size: 1.25rem; font-weight: 600; }
+    
+    .table-container {
+      overflow-x: auto;
+      border-radius: var(--radius);
+      border: 1px solid var(--border-color);
+    }
+    table { width: 100%; border-collapse: collapse; min-width: 600px; }
+    th, td { padding: 1rem; text-align: start; border-bottom: 1px solid var(--border-color); }
+    th { background: var(--bg-primary); font-weight: 600; color: var(--text-secondary); font-size: 0.875rem; }
+    tr:hover { background: rgba(59, 130, 246, 0.05); }
+    
+    .badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      display: inline-block;
+      margin: 0.15rem;
+    }
+    .badge-primary { background: rgba(59, 130, 246, 0.15); color: #2563eb; }
+    .badge-success { background: rgba(34, 197, 94, 0.15); color: #16a34a; }
+    .badge-warning { background: rgba(245, 158, 11, 0.15); color: #d97706; }
+    
+    .actions { display: flex; gap: 0.5rem; }
+    .action-btn {
+      background: none;
+      border: none;
+      padding: 0.5rem;
+      cursor: pointer;
+      border-radius: 8px;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+    }
+    .action-btn:hover { background: var(--bg-primary); }
+    .action-btn.edit:hover { color: var(--warning); }
+    .action-btn.delete:hover { color: var(--danger); }
+    .action-btn.open:hover { color: var(--success); }
+    
+    dialog {
+      border: none;
+      border-radius: var(--radius);
+      padding: 2rem;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      max-width: 500px;
+      width: 90%;
+    }
+    dialog::backdrop { background: rgba(0,0,0,0.5); }
+    
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: inherit;
+    }
+    .form-group input:focus, .form-group select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    
+    .checkbox-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+    }
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .checkbox-item:hover { border-color: var(--primary); }
+    .checkbox-item.selected {
+      background: rgba(59, 130, 246, 0.1);
+      border-color: var(--primary);
+    }
+    
+    .modal-actions { display: flex; gap: 0.5rem; margin-top: 1.5rem; justify-content: flex-end; }
+    
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      padding: 1rem 2rem;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border-right: 4px solid var(--success);
+      z-index: 1000;
+      animation: slideUp 0.3s ease;
+    }
+    .toast.success { border-right-color: var(--success); }
+    .toast.error { border-right-color: var(--danger); }
+    .toast.hidden { display: none; }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translate(-50%, 20px); }
+      to { opacity: 1; transform: translate(-50%, 0); }
+    }
+    
+    .permission-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    .permission-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      text-decoration: none;
+      background: rgba(34, 197, 94, 0.15);
+      color: #16a34a;
+      transition: all 0.2s;
+    }
+    .permission-link:hover {
+      background: rgba(34, 197, 94, 0.3);
+      transform: translateY(-1px);
+    }
+    
+    .open-all-btn {
+      background: var(--success);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 500;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+      margin-top: 0.5rem;
+    }
+    .open-all-btn:hover { background: var(--success-hover); }
+    
+    .hidden { display: none; }
+    
+    @media (max-width: 768px) {
+      .header-content { flex-direction: column; gap: 1rem; }
+      .tabs { flex-wrap: wrap; }
+      .modal-actions { flex-direction: column; }
+      .modal-actions .btn { width: 100%; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <h1><i class="bi bi-shield-lock"></i> <span data-i18n="pageTitle">إدارة المستخدمين والصلاحيات</span></h1>
+      <div class="header-actions">
+        <button id="langToggle" class="btn-icon"><i class="bi bi-globe"></i> <span id="langLabel">EN</span></button>
+        <button id="themeToggle" class="btn-icon"><i class="bi bi-moon-stars-fill"></i></button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('users')"><i class="bi bi-people"></i> <span data-i18n="usersTab">المستخدمين</span></button>
+      <button class="tab" onclick="switchTab('permissions')"><i class="bi bi-shield-check"></i> <span data-i18n="permissionsTab">الصلاحيات</span></button>
+    </div>
+
+    <div id="usersSection">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title"><i class="bi bi-people"></i> <span data-i18n="usersListTitle">قائمة المستخدمين</span></h2>
+          <button class="btn btn-success" onclick="openAddUserModal()"><i class="bi bi-person-plus"></i> <span data-i18n="addUserBtn">إضافة مستخدم</span></button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th data-i18n="thUsername">اسم المستخدم</th>
+                <th data-i18n="thPermissions">الصلاحيات</th>
+                <th data-i18n="thLinks">فتح الروابط</th>
+                <th data-i18n="thActions">الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="permissionsSection" class="hidden">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title"><i class="bi bi-shield-check"></i> <span data-i18n="permsListTitle">قائمة الصلاحيات</span></h2>
+          <button class="btn btn-success" onclick="openAddPermissionModal()"><i class="bi bi-plus-circle"></i> <span data-i18n="addPermBtn">إضافة صلاحية</span></button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th data-i18n="thPermName">اسم الصلاحية</th>
+                <th data-i18n="thPermUrl">الرابط</th>
+                <th data-i18n="thPermDesc">الوصف</th>
+                <th data-i18n="thPermActions">الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="permissionsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal إضافة/تعديل مستخدم -->
+  <dialog id="userModal">
+    <h3 id="userModalTitle"><i class="bi bi-person-plus"></i> <span data-i18n="addUserTitle">إضافة مستخدم جديد</span></h3>
+    <form id="userForm">
+      <input type="hidden" id="userId">
+      <div class="form-group">
+        <label data-i18n="lblUsername">اسم المستخدم</label>
+        <input type="text" id="userName" required data-i18n-placeholder="userPlaceholder" placeholder="أدخل اسم المستخدم">
+      </div>
+      <div class="form-group">
+        <label data-i18n="lblPassword">كلمة المرور</label>
+        <input type="password" id="userPassword" data-i18n-placeholder="passPlaceholder" placeholder="أدخل كلمة المرور (اختياري للتعديل)">
+      </div>
+      <div class="form-group">
+        <label data-i18n="lblPermissions">الصلاحيات</label>
+        <div class="checkbox-group" id="permissionsCheckboxes"></div>
+      </div>
+      <div class="modal-actions">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> <span data-i18n="btnSave">حفظ</span></button>
+        <button type="button" class="btn btn-outline" onclick="closeUserModal()"><i class="bi bi-x-lg"></i> <span data-i18n="btnCancel">إلغاء</span></button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Modal إضافة/تعديل صلاحية -->
+  <dialog id="permissionModal">
+    <h3 id="permissionModalTitle"><i class="bi bi-plus-circle"></i> <span data-i18n="addPermTitle">إضافة صلاحية جديدة</span></h3>
+    <form id="permissionForm">
+      <input type="hidden" id="permissionId">
+      <div class="form-group">
+        <label data-i18n="lblPermName">اسم الصلاحية</label>
+        <input type="text" id="permissionName" required placeholder="مثال: مسح كيو آر">
+      </div>
+      <div class="form-group">
+        <label data-i18n="lblPermUrl">الرابط</label>
+        <input type="url" id="permissionUrl" required placeholder="https://example.com/page">
+      </div>
+      <div class="form-group">
+        <label data-i18n="lblPermDesc">الوصف (اختياري)</label>
+        <input type="text" id="permissionDescription" placeholder="وصف مختصر للصلاحية">
+      </div>
+      <div class="modal-actions">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> <span data-i18n="btnSave">حفظ</span></button>
+        <button type="button" class="btn btn-outline" onclick="closePermissionModal()"><i class="bi bi-x-lg"></i> <span data-i18n="btnCancel">إلغاء</span></button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script>
+    const translations = {
+      ar: {
+        pageTitle: "إدارة المستخدمين والصلاحيات",
+        usersTab: "المستخدمين",
+        permissionsTab: "الصلاحيات",
+        usersListTitle: "قائمة المستخدمين",
+        addUserBtn: "إضافة مستخدم",
+        permsListTitle: "قائمة الصلاحيات",
+        addPermBtn: "إضافة صلاحية",
+        thUsername: "اسم المستخدم",
+        thPermissions: "الصلاحيات",
+        thLinks: "فتح الروابط",
+        thActions: "الإجراءات",
+        thPermName: "اسم الصلاحية",
+        thPermUrl: "الرابط",
+        thPermDesc: "الوصف",
+        thPermActions: "الإجراءات",
+        lblUsername: "اسم المستخدم",
+        lblPassword: "كلمة المرور",
+        lblPermissions: "الصلاحيات",
+        lblPermName: "اسم الصلاحية",
+        lblPermUrl: "الرابط",
+        lblPermDesc: "الوصف (اختياري)",
+        btnSave: "حفظ",
+        btnCancel: "إلغاء",
+        addUserTitle: "إضافة مستخدم جديد",
+        editUserTitle: "تعديل مستخدم",
+        addPermTitle: "إضافة صلاحية جديدة",
+        editPermTitle: "تعديل صلاحية",
+        userPlaceholder: "أدخل اسم المستخدم",
+        passPlaceholder: "أدخل كلمة المرور (اختياري للتعديل)",
+        openLink: "فتح الرابط",
+        openAll: "فتح الكل",
+        edit: "تعديل",
+        delete: "حذف",
+        noUsers: "لا يوجد مستخدمين",
+        noPermissions: "لا توجد صلاحيات",
+        noPermsAssigned: "لا توجد صلاحيات",
+        confirmDeleteUser: "هل أنت متأكد من حذف هذا المستخدم؟",
+        confirmDeletePerm: "هل أنت متأكد من حذف هذه الصلاحية؟",
+        userSaved: "تم إضافة المستخدم بنجاح ✓",
+        userUpdated: "تم تحديث المستخدم بنجاح ✓",
+        userDeleted: "تم حذف المستخدم بنجاح ✓",
+        permSaved: "تم إضافة الصلاحية بنجاح ✓",
+        permUpdated: "تم تحديث الصلاحية بنجاح ✓",
+        permDeleted: "تم حذف الصلاحية بنجاح ✓",
+        errorLoad: "حدث خطأ في تحميل البيانات",
+        errorSave: "حدث خطأ في الحفظ",
+        passwordRequired: "كلمة المرور مطلوبة",
+        langLabel: "EN"
+      },
+      en: {
+        pageTitle: "Users & Permissions",
+        usersTab: "Users",
+        permissionsTab: "Permissions",
+        usersListTitle: "Users List",
+        addUserBtn: "Add User",
+        permsListTitle: "Permissions List",
+        addPermBtn: "Add Permission",
+        thUsername: "Username",
+        thPermissions: "Permissions",
+        thLinks: "Links",
+        thActions: "Actions",
+        thPermName: "Permission",
+        thPermUrl: "URL",
+        thPermDesc: "Description",
+        thPermActions: "Actions",
+        lblUsername: "Username",
+        lblPassword: "Password",
+        lblPermissions: "Permissions",
+        lblPermName: "Permission Name",
+        lblPermUrl: "URL",
+        lblPermDesc: "Description",
+        btnSave: "Save",
+        btnCancel: "Cancel",
+        addUserTitle: "Add New User",
+        editUserTitle: "Edit User",
+        addPermTitle: "Add New Permission",
+        editPermTitle: "Edit Permission",
+        userPlaceholder: "Enter username",
+        passPlaceholder: "Enter password (optional)",
+        openLink: "Open",
+        openAll: "Open All",
+        edit: "Edit",
+        delete: "Delete",
+        noUsers: "No users found",
+        noPermissions: "No permissions found",
+        noPermsAssigned: "None",
+        confirmDeleteUser: "Delete this user?",
+        confirmDeletePerm: "Delete this permission?",
+        userSaved: "User added successfully ✓",
+        userUpdated: "User updated successfully ✓",
+        userDeleted: "User deleted successfully ✓",
+        permSaved: "Permission added successfully ✓",
+        permUpdated: "Permission updated successfully ✓",
+        permDeleted: "Permission deleted successfully ✓",
+        errorLoad: "Error loading data",
+        errorSave: "Error saving",
+        passwordRequired: "Password required",
+        langLabel: "عربي"
+      }
+    };
+
+    let currentLang = localStorage.getItem('lang') || 'ar';
+    
+    function t(key) {
+      return translations[currentLang]?.[key] || key;
+    }
+    
+    function setLang(lang) {
+      currentLang = lang;
+      localStorage.setItem('lang', lang);
+      document.documentElement.lang = lang;
+      document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+      
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        if (translations[currentLang]?.[key]) {
+          el.textContent = translations[currentLang][key];
+        }
+      });
+      
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.dataset.i18nPlaceholder;
+        if (translations[currentLang]?.[key]) {
+          el.placeholder = translations[currentLang][key];
+        }
+      });
+      
+      document.getElementById('langLabel').textContent = t('langLabel');
+      
+      // تحديث جداول البيانات
+      renderUsersTable();
+      renderPermissionsTable();
+    }
+
+    const SUPABASE_URL = 'https://ncqvzpcqotdiwjqbwlwp.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_98lfpU1zaqG-MNxkhlvg6g_KEMPMPbS';
+    const { createClient } = supabase;
+    const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    let users = [], permissions = [], userPermissions = [];
+    let currentTab = 'users';
+
+    function initTheme() {
+      const html = document.documentElement;
+      const btn = document.getElementById('themeToggle');
+      const saved = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const theme = saved || (prefersDark ? 'dark' : 'light');
+      
+      html.setAttribute('data-theme', theme);
+      btn.querySelector('i').className = theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+      
+      btn.addEventListener('click', () => {
+        const current = html.getAttribute('data-theme');
+        const next = current === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', next);
+        btn.querySelector('i').className = next === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+        localStorage.setItem('theme', next);
+      });
+    }
+
+    function showToast(msg, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.className = `toast ${type}`;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 3000);
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+      
+      document.getElementById('usersSection').classList.toggle('hidden', tab !== 'users');
+      document.getElementById('permissionsSection').classList.toggle('hidden', tab !== 'permissions');
+    }
+
+    async function loadData() {
+      try {
+        const [permRes, userRes, userPermRes] = await Promise.all([
+          db.from('permissions').select('*').order('id'),
+          db.from('users').select('*').order('id'),
+          db.from('user_permissions').select('*')
+        ]);
+        
+        if (permRes.error) throw permRes.error;
+        if (userRes.error) throw userRes.error;
+        if (userPermRes.error) throw userPermRes.error;
+        
+        permissions = permRes.data || [];
+        users = userRes.data || [];
+        userPermissions = userPermRes.data || [];
+        
+        renderUsersTable();
+        renderPermissionsTable();
+      } catch (error) {
+        console.error('Error loading data:', error);
+        showToast(t('errorLoad'), 'error');
+      }
+    }
+
+    function renderUsersTable() {
+      const tbody = document.getElementById('usersTableBody');
+      
+      if (users.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;">${t('noUsers')}</td></tr>`;
+        return;
+      }
+      
+      tbody.innerHTML = users.map((user, index) => {
+        const userPerms = userPermissions.filter(up => up.user_id === user.id);
+        const permNames = userPerms.map(up => {
+          const perm = permissions.find(p => p.id === up.permission_id);
+          return perm ? `<span class="badge badge-primary">${escapeHtml(perm.name)}</span>` : '';
+        }).join(' ');
+        
+        const permLinks = userPerms.map(up => {
+          const perm = permissions.find(p => p.id === up.permission_id);
+          return perm ? `<a href="${perm.url}" target="_blank" class="permission-link" title="${perm.description || perm.name}"><i class="bi bi-box-arrow-up-right"></i> ${escapeHtml(perm.name)}</a>` : '';
+        }).join('');
+        
+        return `
+          <tr>
+            <td>${index + 1}</td>
+            <td><strong>${escapeHtml(user.username)}</strong></td>
+            <td>${permNames || `<span style="color: var(--text-secondary);">${t('noPermsAssigned')}</span>`}</td>
+            <td>
+              <div class="permission-links">${permLinks || '<span style="color: var(--text-secondary);">-</span>'}</div>
+              ${userPerms.length > 0 ? `<button class="open-all-btn" onclick="openAllLinks(${user.id})"><i class="bi bi-window-stack"></i> ${t('openAll')}</button>` : ''}
+            </td>
+            <td class="actions">
+              <button class="action-btn edit" onclick="openEditUserModal(${user.id})" title="${t('edit')}"><i class="bi bi-pencil"></i></button>
+              <button class="action-btn delete" onclick="deleteUser(${user.id})" title="${t('delete')}"><i class="bi bi-trash"></i></button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderPermissionsTable() {
+      const tbody = document.getElementById('permissionsTableBody');
+      
+      if (permissions.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;">${t('noPermissions')}</td></tr>`;
+        return;
+      }
+      
+      tbody.innerHTML = permissions.map((perm, index) => {
+        return `
+          <tr>
+            <td>${index + 1}</td>
+            <td><span class="badge badge-primary">${escapeHtml(perm.name)}</span></td>
+            <td><a href="${perm.url}" target="_blank" class="permission-link"><i class="bi bi-box-arrow-up-right"></i> ${t('openLink')}</a></td>
+            <td>${perm.description || '-'}</td>
+            <td class="actions">
+              <button class="action-btn edit" onclick="openEditPermissionModal(${perm.id})" title="${t('edit')}"><i class="bi bi-pencil"></i></button>
+              <button class="action-btn delete" onclick="deletePermission(${perm.id})" title="${t('delete')}"><i class="bi bi-trash"></i></button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function openAllLinks(userId) {
+      const userPerms = userPermissions.filter(up => up.user_id === userId);
+      userPerms.forEach(up => {
+        const perm = permissions.find(p => p.id === up.permission_id);
+        if (perm) {
+          window.open(perm.url, '_blank');
+        }
+      });
+    }
+
+    function openAddPermissionModal() {
+      document.getElementById('permissionId').value = '';
+      document.getElementById('permissionName').value = '';
+      document.getElementById('permissionUrl').value = '';
+      document.getElementById('permissionDescription').value = '';
+      document.getElementById('permissionModalTitle').innerHTML = `<i class="bi bi-plus-circle"></i> ${t('addPermTitle')}`;
+      document.getElementById('permissionModal').showModal();
+    }
+
+    function openEditPermissionModal(id) {
+      const perm = permissions.find(p => p.id === id);
+      if (!perm) return;
+      
+      document.getElementById('permissionId').value = perm.id;
+      document.getElementById('permissionName').value = perm.name;
+      document.getElementById('permissionUrl').value = perm.url;
+      document.getElementById('permissionDescription').value = perm.description || '';
+      document.getElementById('permissionModalTitle').innerHTML = `<i class="bi bi-pencil"></i> ${t('editPermTitle')}`;
+      document.getElementById('permissionModal').showModal();
+    }
+
+    function closePermissionModal() {
+      document.getElementById('permissionModal').close();
+    }
+
+    document.getElementById('permissionForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const id = document.getElementById('permissionId').value;
+      const data = {
+        name: document.getElementById('permissionName').value,
+        url: document.getElementById('permissionUrl').value,
+        description: document.getElementById('permissionDescription').value
+      };
+      
+      try {
+        if (id) {
+          const { error } = await db.from('permissions').update(data).eq('id', id);
+          if (error) throw error;
+          showToast(t('permUpdated'));
+        } else {
+          const { error } = await db.from('permissions').insert([data]);
+          if (error) throw error;
+          showToast(t('permSaved'));
+        }
+        
+        closePermissionModal();
+        await loadData();
+      } catch (error) {
+        console.error('Error saving permission:', error);
+        showToast(t('errorSave'), 'error');
+      }
+    });
+
+    async function deletePermission(id) {
+      if (!confirm(t('confirmDeletePerm'))) return;
+      
+      try {
+        await db.from('user_permissions').delete().eq('permission_id', id);
+        const { error } = await db.from('permissions').delete().eq('id', id);
+        if (error) throw error;
+        
+        showToast(t('permDeleted'));
+        await loadData();
+      } catch (error) {
+        console.error('Error deleting permission:', error);
+        showToast(t('errorSave'), 'error');
+      }
+    }
+
+    function renderPermissionsCheckboxes(selectedPerms = []) {
+      const container = document.getElementById('permissionsCheckboxes');
+      container.innerHTML = permissions.map(perm => `
+        <label class="checkbox-item ${selectedPerms.includes(perm.id) ? 'selected' : ''}">
+          <input type="checkbox" value="${perm.id}" ${selectedPerms.includes(perm.id) ? 'checked' : ''} 
+                 onchange="this.parentElement.classList.toggle('selected', this.checked)">
+          <i class="bi bi-shield-check"></i> ${escapeHtml(perm.name)}
+        </label>
+      `).join('');
+    }
+
+    function getSelectedPermissions() {
+      const checkboxes = document.querySelectorAll('#permissionsCheckboxes input[type="checkbox"]:checked');
+      return Array.from(checkboxes).map(cb => parseInt(cb.value));
+    }
+
+    function openAddUserModal() {
+      document.getElementById('userId').value = '';
+      document.getElementById('userName').value = '';
+      document.getElementById('userPassword').value = '';
+      document.getElementById('userPassword').required = true;
+      document.getElementById('userModalTitle').innerHTML = `<i class="bi bi-person-plus"></i> ${t('addUserTitle')}`;
+      renderPermissionsCheckboxes();
+      document.getElementById('userModal').showModal();
+    }
+
+    function openEditUserModal(id) {
+      const user = users.find(u => u.id === id);
+      if (!user) return;
+      
+      const userPerms = userPermissions.filter(up => up.user_id === id).map(up => up.permission_id);
+      
+      document.getElementById('userId').value = user.id;
+      document.getElementById('userName').value = user.username;
+      document.getElementById('userPassword').value = '';
+      document.getElementById('userPassword').required = false;
+      document.getElementById('userModalTitle').innerHTML = `<i class="bi bi-pencil"></i> ${t('editUserTitle')}`;
+      renderPermissionsCheckboxes(userPerms);
+      document.getElementById('userModal').showModal();
+    }
+
+    function closeUserModal() {
+      document.getElementById('userModal').close();
+    }
+
+    document.getElementById('userForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const id = document.getElementById('userId').value;
+      const username = document.getElementById('userName').value;
+      const password = document.getElementById('userPassword').value;
+      const selectedPerms = getSelectedPermissions();
+      
+      try {
+        let userId = id ? parseInt(id) : null;
+        
+        if (userId) {
+          const updateData = { username };
+          if (password) updateData.password = password;
+          
+          const { error } = await db.from('users').update(updateData).eq('id', userId);
+          if (error) throw error;
+          
+          await db.from('user_permissions').delete().eq('user_id', userId);
+        } else {
+          if (!password) {
+            showToast(t('passwordRequired'), 'error');
+            return;
+          }
+          
+          const { data, error } = await db.from('users').insert([{ username, password }]).select();
+          if (error) throw error;
+          userId = data[0].id;
+        }
+        
+        if (selectedPerms.length > 0) {
+          const permRecords = selectedPerms.map(permId => ({
+            user_id: userId,
+            permission_id: permId
+          }));
+          
+          const { error } = await db.from('user_permissions').insert(permRecords);
+          if (error) throw error;
+        }
+        
+        showToast(userId ? t('userUpdated') : t('userSaved'));
+        closeUserModal();
+        await loadData();
+      } catch (error) {
+        console.error('Error saving user:', error);
+        showToast(t('errorSave'), 'error');
+      }
+    });
+
+    async function deleteUser(id) {
+      if (!confirm(t('confirmDeleteUser'))) return;
+      
+      try {
+        await db.from('user_permissions').delete().eq('user_id', id);
+        const { error } = await db.from('users').delete().eq('id', id);
+        if (error) throw error;
+        
+        showToast(t('userDeleted'));
+        await loadData();
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        showToast(t('errorSave'), 'error');
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initTheme();
+      setLang(currentLang);
+      loadData();
+      
+      document.getElementById('langToggle').addEventListener('click', () => {
+        const newLang = currentLang === 'ar' ? 'en' : 'ar';
+        setLang(newLang);
+      });
+    });
+  </script>
+</body>
+</html>
